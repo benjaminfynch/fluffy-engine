@@ -1,0 +1,14 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "transit-trip-processor"
+s3_prefix = "transit-trip-processor"
+resolve_s3 = true
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+disable_rollback = false
+parameter_overrides = "LogRetentionInDays=\"30\""
+image_repositories = []
+
+[default.global.parameters]
+region = "ap-southeast-2"

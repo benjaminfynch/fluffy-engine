@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Transit tap processing application
+
+Parameters:
+  LogRetentionInDays:
+    Type: Number
+    Default: 30
+    MinValue: 1
+
+Resources:
+  TapInputBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  TripProcessingLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${AWS::StackName}-trip-processing
+      RetentionInDays: !Ref LogRetentionInDays
+
+  TripProcessingFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: .
+      Handler: com.interview.assignment.lambda.TripFileHandler::handleRequest
+      Runtime: java21
+      Architectures:
+        - arm64
+      MemorySize: 512
+      Timeout: 30
+      LoggingConfig:
+        ApplicationLogLevel: INFO
+        LogFormat: JSON
+        LogGroup: !Ref TripProcessingLogGroup
+        SystemLogLevel: WARN
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - S3ReadPolicy:
+            BucketName: !Sub ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}
+      Events:
+        TapFileUploaded:
+          Type: S3
+          Properties:
+            Bucket: !Ref TapInputBucket
+            Events: s3:ObjectCreated:*
+
+Outputs:
+  TapInputBucketName:
+    Value: !Ref TapInputBucket
+  TripProcessingFunctionArn:
+    Value: !GetAtt TripProcessingFunction.Arn
