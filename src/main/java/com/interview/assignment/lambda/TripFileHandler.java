@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import org.slf4j.MDC;
 
 public final class TripFileHandler implements RequestHandler<S3Event, Void> {
   private final TripProcessingService tripProcessingService;
@@ -26,6 +27,7 @@ public final class TripFileHandler implements RequestHandler<S3Event, Void> {
 
   @Override
   public Void handleRequest(S3Event event, Context context) {
+    MDC.put("correlationId", context.getAwsRequestId());
     for (var record : event.getRecords()) {
       var bucket = record.getS3().getBucket().getName();
       var key = URLDecoder.decode(record.getS3().getObject().getKey(), StandardCharsets.UTF_8);

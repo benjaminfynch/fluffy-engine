@@ -4,7 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification.S3BucketEntity;
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification.S3Entity;
@@ -22,9 +25,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -38,9 +43,11 @@ class TripFileHandlerFlociIT {
   private final FlociContainer floci = new FlociContainer("floci/floci:2.3.0");
   private S3Client s3Client;
   private TripFileHandler handler;
+  private final Context context = mock(Context.class);
 
   @BeforeEach
   void setUp() {
+    when(context.getAwsRequestId()).thenReturn(UUID.randomUUID().toString());
     floci.start();
     s3Client =
         S3Client.builder()
@@ -62,6 +69,7 @@ class TripFileHandlerFlociIT {
 
   @AfterEach
   void tearDown() {
+    MDC.remove("correlationId");
     try {
       if (s3Client != null) {
         s3Client.close();
@@ -99,7 +107,7 @@ class TripFileHandlerFlociIT {
 
     var exception =
         assertThrows(
-            UncheckedIOException.class, () -> handler.handleRequest(event(versionId), null));
+            UncheckedIOException.class, () -> handler.handleRequest(event(versionId), context));
 
     assertEquals("Invalid tap at CSV record 1", exception.getCause().getMessage());
     assertNoOutputOrProcessedTag(versionId);
@@ -113,7 +121,7 @@ class TripFileHandlerFlociIT {
     var exception =
         assertThrows(
             S3Exception.class,
-            () -> handlerWithMissingOutputBucket.handleRequest(event(versionId), null));
+            () -> handlerWithMissingOutputBucket.handleRequest(event(versionId), context));
 
     assertEquals("NoSuchBucket", exception.awsErrorDetails().errorCode());
     assertNoOutputOrProcessedTag(versionId);
@@ -140,7 +148,7 @@ class TripFileHandlerFlociIT {
   private void assertProcessesCsv(String input, String expectedOutput) {
     var versionId = uploadInput(input);
 
-    handler.handleRequest(event(versionId), null);
+    handler.handleRequest(event(versionId), context);
 
     var outputKey =
         "incoming/tap data/" + URLEncoder.encode(versionId, StandardCharsets.UTF_8) + "/trips.csv";
