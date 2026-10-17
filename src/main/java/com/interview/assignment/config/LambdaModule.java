@@ -1,10 +1,9 @@
-package com.interview.assignment.lambda;
+package com.interview.assignment.config;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
-import com.interview.assignment.config.FareConfiguration;
 import com.interview.assignment.service.FareCalculator;
 import com.interview.assignment.service.TripMatchingService;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -16,13 +15,13 @@ public final class LambdaModule extends AbstractModule {
     this(System.getenv("TRIP_OUTPUT_BUCKET"));
   }
 
-  LambdaModule(String outputBucket) {
+  public LambdaModule(String outputBucket) {
     this.outputBucket = outputBucket;
   }
 
   @Provides
   @Named("outputBucket")
-  String provideOutputBucket() {
+  public String provideOutputBucket() {
     if (outputBucket == null || outputBucket.isBlank()) {
       throw new IllegalStateException("TRIP_OUTPUT_BUCKET must be configured");
     }
@@ -31,19 +30,19 @@ public final class LambdaModule extends AbstractModule {
 
   @Provides
   @Singleton
-  TripMatchingService provideTripMatchingService(FareCalculator fareCalculator) {
+  public TripMatchingService provideTripMatchingService(FareCalculator fareCalculator) {
     return new TripMatchingService(fareCalculator);
   }
 
   @Provides
   @Singleton
-  FareCalculator provideFareCalculator() {
+  public FareCalculator provideFareCalculator() {
     return new FareCalculator(FareConfiguration.faresInCents());
   }
 
   @Provides
   @Singleton
-  S3Client provideS3Client() {
+  public S3Client provideS3Client() {
     return S3Client.builder().build();
   }
 }

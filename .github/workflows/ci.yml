@@ -31,6 +31,26 @@ jobs:
       - name: Lint, compile and run tests
         run: ./mvnw --batch-mode --no-transfer-progress verify
 
+  integration-test:
+    name: Floci integration test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Run Floci integration test
+        run: ./mvnw --batch-mode --no-transfer-progress -Pintegration verify
+
   sam-verify:
     name: Validate SAM template
     runs-on: ubuntu-latest

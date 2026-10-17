@@ -18,6 +18,7 @@ import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotificatio
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification.S3ObjectEntity;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.interview.assignment.config.LambdaModule;
 import com.interview.assignment.service.TripProcessingService;
 import java.io.IOException;
 import java.io.UncheckedIOException;

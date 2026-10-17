@@ -1,0 +1,2 @@
+ID,DateTimeUTC,TapType,StopId,CompanyId,BusID,PAN
+1,not-a-timestamp,ON,Stop1,Company1,Bus37,4111111111111111
