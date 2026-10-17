@@ -1,0 +1,39 @@
+services:
+  floci:
+    image: floci/floci:2.3.0
+
+  lambda:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_REGION: us-east-1
+      AWS_EC2_METADATA_DISABLED: 'true'
+      TRIP_OUTPUT_BUCKET: trip-output
+    depends_on:
+      floci:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, curl, --silent, --output, /dev/null, 'http://localhost:8080/']
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  process:
+    build:
+      context: local
+      dockerfile: Dockerfile.tools
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_EC2_METADATA_DISABLED: 'true'
+      AWS_PAGER: ''
+    volumes:
+      - ./local/input:/input:ro
+      - ./local/output:/output
+    depends_on:
+      lambda:
+        condition: service_healthy

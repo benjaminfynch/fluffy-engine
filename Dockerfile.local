@@ -1,0 +1,15 @@
+FROM maven:3.9.11-amazoncorretto-21 AS build
+WORKDIR /build
+COPY pom.xml mvnw ./
+COPY .mvn .mvn
+COPY config config
+COPY src src
+RUN --mount=type=cache,target=/root/.m2 ./mvnw --batch-mode --no-transfer-progress \
+    -Dmaven.test.skip=true package dependency:copy-dependencies -DincludeScope=runtime
+
+FROM public.ecr.aws/lambda/java:21
+COPY --from=build /build/target/classes/ ${LAMBDA_TASK_ROOT}/
+COPY --from=build /build/target/dependency/ ${LAMBDA_TASK_ROOT}/lib/
+COPY local/lambda-entrypoint.sh /opt/local-entrypoint.sh
+ENTRYPOINT ["/bin/sh", "/opt/local-entrypoint.sh"]
+CMD ["com.interview.assignment.lambda.TripFileHandler::handleRequest"]

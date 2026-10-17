@@ -3,3 +3,7 @@ target/
 .idea/
 *.iml
 .DS_Store
+local/input/*
+!local/input/.gitkeep
+local/output/*
+!local/output/.gitkeep

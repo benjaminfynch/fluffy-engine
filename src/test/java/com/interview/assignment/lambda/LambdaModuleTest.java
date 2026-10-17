@@ -12,6 +12,7 @@ import com.google.inject.Guice;
 import com.google.inject.Key;
 import com.google.inject.name.Names;
 import com.google.inject.util.Modules;
+import com.interview.assignment.config.LambdaModule;
 import com.interview.assignment.service.FareCalculator;
 import com.interview.assignment.service.TripMatchingService;
 import com.interview.assignment.service.TripProcessingService;

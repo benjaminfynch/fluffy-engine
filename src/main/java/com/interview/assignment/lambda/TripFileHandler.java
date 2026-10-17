@@ -5,6 +5,7 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
+import com.interview.assignment.config.LambdaModule;
 import com.interview.assignment.service.TripProcessingService;
 import java.io.IOException;
 import java.io.UncheckedIOException;
