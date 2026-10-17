@@ -1,16 +1,19 @@
 package com.interview.assignment.lambda;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification.S3BucketEntity;
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification.S3Entity;
@@ -23,15 +26,37 @@ import com.interview.assignment.service.TripProcessingService;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 
 class TripFileHandlerTest {
+  private final Context context = mock(Context.class);
+
+  @BeforeEach
+  void setUp() {
+    when(context.getAwsRequestId()).thenReturn("request-123");
+  }
+
+  @AfterEach
+  void clearCorrelationId() {
+    MDC.remove("correlationId");
+  }
+
   @Test
   void delegatesProcessingUsingTheDecodedKey() throws IOException {
     var service = mock(TripProcessingService.class);
     var handler = new TripFileHandler(service);
+    doAnswer(
+            invocation -> {
+              assertEquals("request-123", MDC.get("correlationId"));
+              return null;
+            })
+        .when(service)
+        .process("tap-input", "incoming/tap data.csv", "version-1");
 
-    assertNull(handler.handleRequest(event(), null));
+    assertNull(handler.handleRequest(event(), context));
 
     verify(service).process("tap-input", "incoming/tap data.csv", "version-1");
   }
@@ -44,7 +69,7 @@ class TripFileHandlerTest {
     var handler = new TripFileHandler(service);
 
     var exception =
-        assertThrows(UncheckedIOException.class, () -> handler.handleRequest(event(), null));
+        assertThrows(UncheckedIOException.class, () -> handler.handleRequest(event(), context));
 
     assertSame(failure, exception.getCause());
   }
