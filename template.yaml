@@ -15,6 +15,26 @@ Resources:
     UpdateReplacePolicy: Retain
     Properties:
       BucketName: !Sub ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  TripOutputBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -48,6 +68,9 @@ Resources:
         - arm64
       MemorySize: 512
       Timeout: 30
+      Environment:
+        Variables:
+          TRIP_OUTPUT_BUCKET: !Ref TripOutputBucket
       LoggingConfig:
         ApplicationLogLevel: INFO
         LogFormat: JSON
@@ -55,8 +78,16 @@ Resources:
         SystemLogLevel: WARN
       Policies:
         - AWSLambdaBasicExecutionRole
-        - S3ReadPolicy:
-            BucketName: !Sub ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObjectVersion
+                - s3:GetObjectVersionTagging
+                - s3:PutObjectVersionTagging
+              Resource: !Sub arn:${AWS::Partition}:s3:::${AWS::StackName}-${AWS::AccountId}-${AWS::Region}/*
+            - Effect: Allow
+              Action: s3:PutObject
+              Resource: !Sub arn:${AWS::Partition}:s3:::${TripOutputBucket}/*
       Events:
         TapFileUploaded:
           Type: S3
@@ -67,5 +98,7 @@ Resources:
 Outputs:
   TapInputBucketName:
     Value: !Ref TapInputBucket
+  TripOutputBucketName:
+    Value: !Ref TripOutputBucket
   TripProcessingFunctionArn:
     Value: !GetAtt TripProcessingFunction.Arn

@@ -2,34 +2,55 @@ package com.interview.assignment.lambda;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
 
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification.S3BucketEntity;
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification.S3Entity;
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification.S3EventNotificationRecord;
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification.S3ObjectEntity;
-import com.interview.assignment.service.S3Service;
-import java.nio.charset.StandardCharsets;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
+import com.interview.assignment.service.TripProcessingService;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockMakers;
-import software.amazon.awssdk.core.ResponseBytes;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 class TripFileHandlerTest {
   @Test
-  void readsTheObjectUsingTheDecodedKey() {
-    var s3Service = mock(S3Service.class, withSettings().mockMaker(MockMakers.SUBCLASS));
-    var response =
-        ResponseBytes.fromByteArray(
-            GetObjectResponse.builder().build(), "test contents".getBytes(StandardCharsets.UTF_8));
-    when(s3Service.getS3Object("tap-input", "incoming/tap data.csv")).thenReturn(response);
+  void delegatesProcessingUsingTheDecodedKey() throws IOException {
+    var service = mock(TripProcessingService.class);
+    var handler = new TripFileHandler(service);
+
+    assertNull(handler.handleRequest(event(), null));
+
+    verify(service).process("tap-input", "incoming/tap data.csv", "version-1");
+  }
+
+  @Test
+  void propagatesProcessingFailures() throws IOException {
+    var service = mock(TripProcessingService.class);
+    var failure = new IOException("Invalid CSV");
+    doThrow(failure).when(service).process("tap-input", "incoming/tap data.csv", "version-1");
+    var handler = new TripFileHandler(service);
+
+    var exception =
+        assertThrows(UncheckedIOException.class, () -> handler.handleRequest(event(), null));
+
+    assertSame(failure, exception.getCause());
+  }
+
+  private S3Event event() {
     var bucket = new S3BucketEntity("tap-input", null, "arn:aws:s3:::tap-input");
-    var object = new S3ObjectEntity("incoming%2Ftap+data.csv", 13L, null, null);
+    var object = new S3ObjectEntity("incoming%2Ftap+data.csv", 13L, null, "version-1", null);
     var s3 = new S3Entity("test", bucket, object, "1.0");
     var record =
         new S3EventNotificationRecord(
@@ -42,26 +63,17 @@ class TripFileHandlerTest {
             null,
             s3,
             null);
-    var event = new S3Event(List.of(record));
-    var handler = new TripFileHandler(s3Service);
-
-    assertNull(handler.handleRequest(event, null));
-
-    verify(s3Service).getS3Object("tap-input", "incoming/tap data.csv");
+    return new S3Event(List.of(record));
   }
 
   @Test
   void constructsTheHandlerUsingGuice() {
-    var previousRegion = System.getProperty("aws.region");
-    try {
-      System.setProperty("aws.region", "ap-southeast-2");
+    var injector = mock(Injector.class);
+    when(injector.getInstance(TripProcessingService.class))
+        .thenReturn(mock(TripProcessingService.class));
+    try (var guice = mockStatic(Guice.class)) {
+      guice.when(() -> Guice.createInjector(any(LambdaModule.class))).thenReturn(injector);
       assertNotNull(new TripFileHandler());
-    } finally {
-      if (previousRegion == null) {
-        System.clearProperty("aws.region");
-      } else {
-        System.setProperty("aws.region", previousRegion);
-      }
     }
   }
 }

@@ -29,6 +29,26 @@ class TripCsvWriterTest {
   }
 
   @Test
+  void leavesFinishedDurationAndDestinationBlankForIncompleteTrips() throws IOException {
+    var on =
+        new Tap(
+            1,
+            Instant.parse("2023-01-22T13:00:00Z"),
+            TapType.ON,
+            Stop.STOP_1,
+            "Company1",
+            "Bus37",
+            "4111111111111111");
+    var output = new StringWriter();
+
+    writer.write(List.of(new Trip(on, Optional.empty(), 730, TripStatus.INCOMPLETE)), output);
+
+    assertEquals(
+        "22-01-2023 13:00:00,,,Stop1,,$7.30,Company1,Bus37,4111111111111111,INCOMPLETE",
+        output.toString().lines().toList().get(1));
+  }
+
+  @Test
   void escapesQuotedFieldsAndWritesUtf8Text() throws IOException {
     var on =
         new Tap(
