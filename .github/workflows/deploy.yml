@@ -18,7 +18,7 @@ env:
 jobs:
   test:
     name: Run tests
-    if: github.repository == 'benjaminfynch/fluffy-engine' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -39,7 +39,7 @@ jobs:
 
   sam-validate:
     name: Validate SAM template
-    if: github.repository == 'benjaminfynch/fluffy-engine' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -57,7 +57,7 @@ jobs:
   deploy:
     name: Deploy SAM stack
     needs: [test, sam-validate]
-    if: github.repository == 'benjaminfynch/fluffy-engine' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
