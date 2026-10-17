@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   build-and-test:
-    name: Build and test
+    name: Lint, build and test
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -28,5 +28,5 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Compile and run tests
+      - name: Lint, compile and run tests
         run: ./mvnw --batch-mode --no-transfer-progress verify

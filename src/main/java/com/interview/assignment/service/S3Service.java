@@ -9,15 +9,15 @@ import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 public class S3Service {
 
-    private final S3Client s3Client;
+  private final S3Client s3Client;
 
-    @Inject
-    public S3Service(S3Client s3Client) {
-        this.s3Client = s3Client;
-    }
+  @Inject
+  public S3Service(S3Client s3Client) {
+    this.s3Client = s3Client;
+  }
 
-    public ResponseBytes<GetObjectResponse> getS3Object(String bucket, String key) {
-        var request = GetObjectRequest.builder().bucket(bucket).key(key).build();
-        return s3Client.getObject(request, ResponseTransformer.toBytes());
-    }
+  public ResponseBytes<GetObjectResponse> getS3Object(String bucket, String key) {
+    var request = GetObjectRequest.builder().bucket(bucket).key(key).build();
+    return s3Client.getObject(request, ResponseTransformer.toBytes());
+  }
 }
