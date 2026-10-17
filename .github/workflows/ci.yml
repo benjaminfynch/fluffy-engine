@@ -30,3 +30,22 @@ jobs:
 
       - name: Lint, compile and run tests
         run: ./mvnw --batch-mode --no-transfer-progress verify
+
+  sam-verify:
+    name: Validate SAM template
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up AWS SAM CLI
+        uses: aws-actions/setup-sam@v3
+
+      - name: Validate SAM template
+        env:
+          SAM_CLI_TELEMETRY: '0'
+          AWS_EC2_METADATA_DISABLED: 'true'
+        run: sam validate --lint --template-file template.yaml --region ap-southeast-2
