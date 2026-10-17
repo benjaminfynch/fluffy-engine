@@ -46,8 +46,7 @@ class TripProcessingServiceTest {
     "batch/upload, version/with+symbols, batch/upload/version%2Fwith%2Bsymbols/trips.csv"
   })
   void uploadsToTheSameOutputKeyWhenProcessingTheSameInputVersionTwice(
-      String inputKey, String versionId, String outputKey)
-      throws IOException {
+      String inputKey, String versionId, String outputKey) throws IOException {
     var response =
         ResponseBytes.fromByteArray(
             GetObjectResponse.builder().build(), "input csv".getBytes(StandardCharsets.UTF_8));
