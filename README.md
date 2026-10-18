@@ -1,7 +1,7 @@
 # Transit trip processor
 
 Java 21 application that converts tap-on/tap-off CSV records into trips and fares.
-Runs as an S3-triggered AWS Lambda, with a Docker-only option for local use.
+Runs locally with Java 21 or as an S3-triggered AWS Lambda.
 
 ## Design approach
 
@@ -12,7 +12,21 @@ repeatable. Core parsing, matching, and fare calculation remain independent of A
 
 ## Run locally
 
-Requires Docker with Compose, such as Docker Desktop. No AWS account is needed.
+Requires Java 21; no Docker or AWS account is needed. The Maven wrapper downloads
+Maven automatically.
+
+```sh
+./mvnw compile exec:java -Dexec.args="examples/taps.csv target/trips.csv"
+```
+
+The arguments are the input and output file paths. The output directory must exist;
+an existing output file is replaced after the input has been read and matched.
+This uses the same parser, matching logic and CSV writer as the Lambda.
+
+### Lambda runtime with Docker
+
+To run the Lambda handler locally instead, use Docker with Compose, such as Docker
+Desktop. No AWS account is needed.
 
 ```sh
 cp examples/taps.csv local/input/taps.csv
